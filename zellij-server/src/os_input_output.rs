@@ -508,7 +508,7 @@ pub trait ServerOsApi: Send + Sync {
     /// Returns the current working directory for a given pid
     fn get_cwd(&self, pid: Pid) -> Option<PathBuf>;
     /// Returns the current working directory for multiple pids
-    fn get_cwds(&self, _pids: Vec<Pid>) -> HashMap<Pid, PathBuf> {
+    fn get_cwds(&self, _pids: Vec<Pid>, _cmds: &mut HashMap<Pid, Vec<String>>) -> HashMap<Pid, PathBuf> {
         HashMap::new()
     }
     /// Get a list of all running commands by their parent process id
@@ -755,7 +755,7 @@ impl ServerOsApi for ServerOsInputOutput {
         None
     }
 
-    fn get_cwds(&self, pids: Vec<Pid>) -> HashMap<Pid, PathBuf> {
+    fn get_cwds(&self, pids: Vec<Pid>, cmds: &mut HashMap<Pid, Vec<String>>) -> HashMap<Pid, PathBuf> {
         let mut system_info = System::new();
         let mut cwds = HashMap::new();
 
@@ -767,9 +767,14 @@ impl ServerOsApi for ServerOsInputOutput {
             if is_found {
                 if let Some(process) = system_info.process(pid.into()) {
                     let cwd = process.cwd();
+                    let cmd = process.cmd();
                     let cwd_is_empty = cwd.iter().next().is_none();
                     if !cwd_is_empty {
                         cwds.insert(pid, process.cwd().to_path_buf());
+                    }
+                    let cmd_is_empty = cmd.iter().next().is_none();
+                    if !cmd_is_empty {
+                        cmds.insert(pid, process.cmd().to_vec());
                     }
                 }
             }
