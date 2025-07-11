@@ -508,8 +508,8 @@ pub trait ServerOsApi: Send + Sync {
     /// Returns the current working directory for a given pid
     fn get_cwd(&self, pid: Pid) -> Option<PathBuf>;
     /// Returns the current working directory for multiple pids
-    fn get_cwds(&self, _pids: Vec<Pid>, _cmds: &mut HashMap<Pid, Vec<String>>) -> HashMap<Pid, PathBuf> {
-        HashMap::new()
+    fn get_cwds(&self, _pids: Vec<Pid>) -> (HashMap<Pid, PathBuf>, HashMap<Pid, Vec<String>>) {
+        (HashMap::new(), HashMap::new())
     }
     /// Get a list of all running commands by their parent process id
     fn get_all_cmds_by_ppid(&self, _post_hook: &Option<String>) -> HashMap<String, Vec<String>> {
@@ -755,9 +755,10 @@ impl ServerOsApi for ServerOsInputOutput {
         None
     }
 
-    fn get_cwds(&self, pids: Vec<Pid>, cmds: &mut HashMap<Pid, Vec<String>>) -> HashMap<Pid, PathBuf> {
+    fn get_cwds(&self, pids: Vec<Pid>) -> (HashMap<Pid, PathBuf>, HashMap<Pid, Vec<String>>) {
         let mut system_info = System::new();
         let mut cwds = HashMap::new();
+        let mut cmds = HashMap::new();
 
         for pid in pids {
             // Update by minimizing information.
@@ -780,7 +781,7 @@ impl ServerOsApi for ServerOsInputOutput {
             }
         }
 
-        cwds
+        (cwds, cmds)
     }
     fn get_all_cmds_by_ppid(&self, post_hook: &Option<String>) -> HashMap<String, Vec<String>> {
         // the key is the stringified ppid
